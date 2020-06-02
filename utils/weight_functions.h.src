@@ -90,6 +90,11 @@ static inline SSE_FLOATS sse_pair_product_DOUBLE(const pair_struct_DOUBLE *pair)
 }
 #endif
 
+
+static inline DOUBLE harshil_DOUBLE(const pair_struct_DOUBLE *pair){
+    return pair->weights0[0].d*pair->weights1[0].d + pair->weights0[13].d*pair->weights1[13].d;
+}
+
 //////////////////////////////////
 // Utility functions
 //////////////////////////////////
@@ -102,6 +107,8 @@ static inline weight_func_t_DOUBLE get_weight_func_by_method_DOUBLE(const weight
     switch(method){
         case PAIR_PRODUCT:
             return &pair_product_DOUBLE;
+        case HARSHIL:
+            return &harshil_DOUBLE;
         default:
         case NONE:
             return NULL;

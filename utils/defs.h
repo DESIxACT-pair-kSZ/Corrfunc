@@ -335,7 +335,7 @@ static inline struct config_options get_config_options(void)
 
 #define EXTRA_OPTIONS_HEADER_SIZE     (1024)
 
-#define MAX_NUM_WEIGHTS 10
+#define MAX_NUM_WEIGHTS 14
 
 typedef struct
 {
@@ -346,6 +346,7 @@ typedef struct
 typedef enum {
   NONE=-42, /* default */
   PAIR_PRODUCT=0,
+  HARSHIL=1,
   NUM_WEIGHT_TYPE
 } weight_method_t; // type of weighting to apply
 
@@ -355,6 +356,8 @@ static inline int get_num_weights_by_method(const weight_method_t method){
     switch(method){
         case PAIR_PRODUCT:
             return 1;
+        case HARSHIL:
+            return 14;
         default:
         case NONE:
             return 0;
@@ -373,6 +376,11 @@ static inline int get_weight_method_by_name(const char *name, weight_method_t *m
     // It is still safe because one of the args is a string literal.
     if(strcmp(name, "pair_product") == 0 || strcmp(name, "p") == 0){
         *method = PAIR_PRODUCT;
+        return EXIT_SUCCESS;
+    }
+
+    if(strcmp(name, "harshil") == 0){
+        *method = HARSHIL;
         return EXIT_SUCCESS;
     }
 
