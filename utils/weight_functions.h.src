@@ -90,6 +90,52 @@ static inline SSE_FLOATS sse_pair_product_DOUBLE(const pair_struct_DOUBLE *pair)
 }
 #endif
 
+/*
+ * Weight the pair by the signed difference in radial velocity, | v dot rhat |
+ */
+static inline DOUBLE pairwise_vel_DOUBLE(const pair_struct_DOUBLE *pair){
+    DOUBLE deltavx = pair->weights0[0].d - pair->weights1[0].d;
+    DOUBLE deltavy = pair->weights0[1].d - pair->weights1[1].d;
+    DOUBLE deltavz = pair->weights0[2].d - pair->weights1[2].d;
+    
+    DOUBLE invrmag = ((DOUBLE) 1.)/SQRT((pair->dx.d)*(pair->dx.d) + (pair->dy.d)*(pair->dy.d) + (pair->dz.d)*(pair->dz.d));
+    
+    return (deltavx*pair->dx.d + deltavy*pair->dy.d + deltavz*pair->dz.d)*invrmag;
+}
+
+/*
+ * * Weight the pair by the squared difference in radial velocity, | v dot rhat |^2
+ */
+static inline DOUBLE pairwise_vel2_DOUBLE(const pair_struct_DOUBLE *pair){
+    DOUBLE deltavx2 = pair->weights0[0].d - pair->weights1[0].d;
+    DOUBLE deltavy2 = pair->weights0[1].d - pair->weights1[1].d;
+    DOUBLE deltavz2 = pair->weights0[2].d - pair->weights1[2].d;
+    deltavx2 *= deltavx2;
+    deltavy2 *= deltavy2;
+    deltavz2 *= deltavz2;
+    
+    DOUBLE invrmag = ((DOUBLE) 1.)/SQRT((pair->dx.d)*(pair->dx.d) + (pair->dy.d)*(pair->dy.d) + (pair->dz.d)*(pair->dz.d));
+    
+    return (deltavx2*pair->dx.d + deltavy2*pair->dy.d + deltavz2*pair->dz.d)*invrmag;
+}
+
+/*
+ * Weight the pair by the squared difference in tangential velocity, | v - (v dot rhat) |^2
+ */
+static inline DOUBLE pairwise_tang_vel2_DOUBLE(const pair_struct_DOUBLE *pair){
+    DOUBLE deltavx = pair->weights0[0].d - pair->weights1[0].d;
+    DOUBLE deltavy = pair->weights0[1].d - pair->weights1[1].d;
+    DOUBLE deltavz = pair->weights0[2].d - pair->weights1[2].d;
+    
+    DOUBLE invrmag = ((DOUBLE) 1.)/SQRT((pair->dx.d)*(pair->dx.d) + (pair->dy.d)*(pair->dy.d) + (pair->dz.d)*(pair->dz.d));
+    
+    DOUBLE deltavx_T = deltavx - deltavx*pair->dx.d*invrmag;
+    DOUBLE deltavy_T = deltavy - deltavy*pair->dy.d*invrmag;
+    DOUBLE deltavz_T = deltavz - deltavz*pair->dz.d*invrmag;
+    
+    return deltavx_T*deltavx_T + deltavy_T*deltavy_T + deltavz_T*deltavz_T;
+}
+
 //////////////////////////////////
 // Utility functions
 //////////////////////////////////
@@ -102,6 +148,12 @@ static inline weight_func_t_DOUBLE get_weight_func_by_method_DOUBLE(const weight
     switch(method){
         case PAIR_PRODUCT:
             return &pair_product_DOUBLE;
+        case PAIRWISE_VEL:
+            return &pairwise_vel_DOUBLE;
+        case PAIRWISE_VEL2:
+            return &pairwise_vel2_DOUBLE;
+        case PAIRWISE_TANG_VEL2:
+            return &pairwise_tang_vel2_DOUBLE;
         default:
         case NONE:
             return NULL;

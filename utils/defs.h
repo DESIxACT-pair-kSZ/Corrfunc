@@ -346,6 +346,9 @@ typedef struct
 typedef enum {
   NONE=-42, /* default */
   PAIR_PRODUCT=0,
+  PAIRWISE_VEL,
+  PAIRWISE_VEL2,
+  PAIRWISE_TANG_VEL2,
   NUM_WEIGHT_TYPE
 } weight_method_t; // type of weighting to apply
 
@@ -355,6 +358,10 @@ static inline int get_num_weights_by_method(const weight_method_t method){
     switch(method){
         case PAIR_PRODUCT:
             return 1;
+        case PAIRWISE_VEL:
+        case PAIRWISE_VEL2:
+        case PAIRWISE_TANG_VEL2:
+            return 3;
         default:
         case NONE:
             return 0;
@@ -373,6 +380,18 @@ static inline int get_weight_method_by_name(const char *name, weight_method_t *m
     // It is still safe because one of the args is a string literal.
     if(strcmp(name, "pair_product") == 0 || strcmp(name, "p") == 0){
         *method = PAIR_PRODUCT;
+        return EXIT_SUCCESS;
+    }
+    if(strcmp(name, "pairwise_vel") == 0){
+        *method = PAIRWISE_VEL;
+        return EXIT_SUCCESS;
+    }
+    if(strcmp(name, "pairwise_vel2") == 0){
+        *method = PAIRWISE_VEL2;
+        return EXIT_SUCCESS;
+    }
+    if(strcmp(name, "pairwise_tang_vel2") == 0){
+        *method = PAIRWISE_TANG_VEL2;
         return EXIT_SUCCESS;
     }
 
