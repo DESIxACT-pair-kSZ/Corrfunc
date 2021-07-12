@@ -94,9 +94,9 @@ static inline SSE_FLOATS sse_pair_product_DOUBLE(const pair_struct_DOUBLE *pair)
  * Weight the pair by the signed difference in radial velocity, ( v dot rhat )
  */
 static inline DOUBLE pairwise_vel_DOUBLE(const pair_struct_DOUBLE *pair){
-    DOUBLE deltavx = pair->weights0[0].d - pair->weights1[0].d;
-    DOUBLE deltavy = pair->weights0[1].d - pair->weights1[1].d;
-    DOUBLE deltavz = pair->weights0[2].d - pair->weights1[2].d;
+    DOUBLE deltavx = pair->weights1[0].d - pair->weights0[0].d;
+    DOUBLE deltavy = pair->weights1[1].d - pair->weights0[1].d;
+    DOUBLE deltavz = pair->weights1[2].d - pair->weights0[2].d;
     
     DOUBLE invrmag = ((DOUBLE) 1.)/SQRT((pair->dx.d)*(pair->dx.d) + (pair->dy.d)*(pair->dy.d) + (pair->dz.d)*(pair->dz.d));
     
