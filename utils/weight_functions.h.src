@@ -118,6 +118,35 @@ static inline DOUBLE pairwise_vel2_DOUBLE(const pair_struct_DOUBLE *pair){
 }
 
 /*
+ * * Weight the pair by the cubed difference in radial velocity, ( v dot rhat )^3
+ */
+static inline DOUBLE pairwise_vel3_DOUBLE(const pair_struct_DOUBLE *pair){
+    DOUBLE deltavx = pair->weights0[0].d - pair->weights1[0].d;
+    DOUBLE deltavy = pair->weights0[1].d - pair->weights1[1].d;
+    DOUBLE deltavz = pair->weights0[2].d - pair->weights1[2].d;
+    
+    DOUBLE v_dot_r = deltavx*pair->dx.d + deltavy*pair->dy.d + deltavz*pair->dz.d;
+    DOUBLE invr = ((DOUBLE) 1.)/SQRT((pair->dx.d)*(pair->dx.d) + (pair->dy.d)*(pair->dy.d) + (pair->dz.d)*(pair->dz.d));
+    DOUBLE v_dot_rhat = v_dot_r*invr;
+    return v_dot_rhat*v_dot_rhat*v_dot_rhat;
+}
+
+/*
+ * * Weight the pair by the 4th power of the difference in radial velocity, ( v dot rhat )^4
+ */
+static inline DOUBLE pairwise_vel4_DOUBLE(const pair_struct_DOUBLE *pair){
+    DOUBLE deltavx = pair->weights0[0].d - pair->weights1[0].d;
+    DOUBLE deltavy = pair->weights0[1].d - pair->weights1[1].d;
+    DOUBLE deltavz = pair->weights0[2].d - pair->weights1[2].d;
+    
+    DOUBLE v_dot_r = deltavx*pair->dx.d + deltavy*pair->dy.d + deltavz*pair->dz.d;
+    DOUBLE invr2 = ((DOUBLE) 1.)/((pair->dx.d)*(pair->dx.d) + (pair->dy.d)*(pair->dy.d) + (pair->dz.d)*(pair->dz.d));
+    DOUBLE v_dot_rhat_2 = v_dot_r*v_dot_r*invr2;
+    
+    return v_dot_rhat_2*v_dot_rhat_2;
+}
+
+/*
  * Weight the pair by the squared difference in tangential velocity, | v - (v dot rhat)*rhat |^2
  */
 static inline DOUBLE pairwise_tang_vel2_DOUBLE(const pair_struct_DOUBLE *pair){
@@ -131,6 +160,80 @@ static inline DOUBLE pairwise_tang_vel2_DOUBLE(const pair_struct_DOUBLE *pair){
     DOUBLE deltavx_T = deltavx - v_dot_r*pair->dx.d*invr2;
     DOUBLE deltavy_T = deltavy - v_dot_r*pair->dy.d*invr2;
     DOUBLE deltavz_T = deltavz - v_dot_r*pair->dz.d*invr2;
+    
+    return deltavx_T*deltavx_T + deltavy_T*deltavy_T + deltavz_T*deltavz_T;
+}
+
+/*
+ * Weight the pair by the signed difference in radial velocity, ( v dot rhat )
+ */
+static inline AVX_FLOATS avx_pairwise_vel_DOUBLE(const pair_struct_DOUBLE *pair){
+    AVX_FLOATS deltavx = pair->weights1[0].a - pair->weights0[0].a;
+    AVX_FLOATS deltavy = pair->weights1[1].a - pair->weights0[1].a;
+    AVX_FLOATS deltavz = pair->weights1[2].a - pair->weights0[2].a;
+    
+    AVX_FLOATS invrmag = AVX_RSQRT_FLOAT((pair->dx.a)*(pair->dx.a) + (pair->dy.a)*(pair->dy.a) + (pair->dz.a)*(pair->dz.a));
+    
+    return (deltavx*pair->dx.a + deltavy*pair->dy.a + deltavz*pair->dz.a)*invrmag;
+}
+
+/*
+ * * Weight the pair by the squared difference in radial velocity, ( v dot rhat )^2
+ */
+static inline AVX_FLOATS avx_pairwise_vel2_DOUBLE(const pair_struct_DOUBLE *pair){
+    AVX_FLOATS deltavx = pair->weights0[0].a - pair->weights1[0].a;
+    AVX_FLOATS deltavy = pair->weights0[1].a - pair->weights1[1].a;
+    AVX_FLOATS deltavz = pair->weights0[2].a - pair->weights1[2].a;
+    
+    AVX_FLOATS v_dot_r = deltavx*pair->dx.a + deltavy*pair->dy.a + deltavz*pair->dz.a;
+    AVX_FLOATS invr2 = AVX_RECIPROCAL_FLOATS((pair->dx.a)*(pair->dx.a) + (pair->dy.a)*(pair->dy.a) + (pair->dz.a)*(pair->dz.a));
+    
+    return v_dot_r*v_dot_r*invr2;
+}
+
+/*
+ * * Weight the pair by the cubed difference in radial velocity, ( v dot rhat )^3
+ */
+static inline AVX_FLOATS avx_pairwise_vel3_DOUBLE(const pair_struct_DOUBLE *pair){
+    AVX_FLOATS deltavx = pair->weights0[0].a - pair->weights1[0].a;
+    AVX_FLOATS deltavy = pair->weights0[1].a - pair->weights1[1].a;
+    AVX_FLOATS deltavz = pair->weights0[2].a - pair->weights1[2].a;
+    
+    AVX_FLOATS v_dot_r = deltavx*pair->dx.a + deltavy*pair->dy.a + deltavz*pair->dz.a;
+    AVX_FLOATS invr = AVX_RSQRT_FLOAT((pair->dx.a)*(pair->dx.a) + (pair->dy.a)*(pair->dy.a) + (pair->dz.a)*(pair->dz.a));
+    AVX_FLOATS v_dot_rhat = v_dot_r*invr;
+    return v_dot_rhat*v_dot_rhat*v_dot_rhat;
+}
+
+/*
+ * * Weight the pair by the 4th power of the difference in radial velocity, ( v dot rhat )^4
+ */
+static inline AVX_FLOATS avx_pairwise_vel4_DOUBLE(const pair_struct_DOUBLE *pair){
+    AVX_FLOATS deltavx = pair->weights0[0].a - pair->weights1[0].a;
+    AVX_FLOATS deltavy = pair->weights0[1].a - pair->weights1[1].a;
+    AVX_FLOATS deltavz = pair->weights0[2].a - pair->weights1[2].a;
+    
+    AVX_FLOATS v_dot_r = deltavx*pair->dx.a + deltavy*pair->dy.a + deltavz*pair->dz.a;
+    AVX_FLOATS invr2 = AVX_RECIPROCAL_FLOATS((pair->dx.a)*(pair->dx.a) + (pair->dy.a)*(pair->dy.a) + (pair->dz.a)*(pair->dz.a));
+    AVX_FLOATS v_dot_rhat_2 = v_dot_r*v_dot_r*invr2;
+    
+    return v_dot_rhat_2*v_dot_rhat_2;
+}
+
+/*
+ * Weight the pair by the squared difference in tangential velocity, | v - (v dot rhat)*rhat |^2
+ */
+static inline AVX_FLOATS avx_pairwise_tang_vel2_DOUBLE(const pair_struct_DOUBLE *pair){
+    AVX_FLOATS deltavx = pair->weights0[0].a - pair->weights1[0].a;
+    AVX_FLOATS deltavy = pair->weights0[1].a - pair->weights1[1].a;
+    AVX_FLOATS deltavz = pair->weights0[2].a - pair->weights1[2].a;
+    
+    AVX_FLOATS v_dot_r = deltavx*pair->dx.a + deltavy*pair->dy.a + deltavz*pair->dz.a;
+    AVX_FLOATS invr2 = AVX_RECIPROCAL_FLOATS((pair->dx.a)*(pair->dx.a) + (pair->dy.a)*(pair->dy.a) + (pair->dz.a)*(pair->dz.a));
+    
+    AVX_FLOATS deltavx_T = deltavx - v_dot_r*pair->dx.a*invr2;
+    AVX_FLOATS deltavy_T = deltavy - v_dot_r*pair->dy.a*invr2;
+    AVX_FLOATS deltavz_T = deltavz - v_dot_r*pair->dz.a*invr2;
     
     return deltavx_T*deltavx_T + deltavy_T*deltavy_T + deltavz_T*deltavz_T;
 }
@@ -151,6 +254,10 @@ static inline weight_func_t_DOUBLE get_weight_func_by_method_DOUBLE(const weight
             return &pairwise_vel_DOUBLE;
         case PAIRWISE_VEL2:
             return &pairwise_vel2_DOUBLE;
+        case PAIRWISE_VEL3:
+            return &pairwise_vel3_DOUBLE;
+        case PAIRWISE_VEL4:
+            return &pairwise_vel4_DOUBLE;
         case PAIRWISE_TANG_VEL2:
             return &pairwise_tang_vel2_DOUBLE;
         default:
@@ -177,6 +284,16 @@ static inline avx_weight_func_t_DOUBLE get_avx_weight_func_by_method_DOUBLE(cons
     switch(method){
         case PAIR_PRODUCT:
             return &avx_pair_product_DOUBLE;
+        case PAIRWISE_VEL:
+            return &avx_pairwise_vel_DOUBLE;
+        case PAIRWISE_VEL2:
+            return &avx_pairwise_vel2_DOUBLE;
+        case PAIRWISE_VEL3:
+            return &avx_pairwise_vel3_DOUBLE;
+        case PAIRWISE_VEL4:
+            return &avx_pairwise_vel4_DOUBLE;
+        case PAIRWISE_TANG_VEL2:
+            return &avx_pairwise_tang_vel2_DOUBLE;
         default:
         case NONE:
             return NULL;

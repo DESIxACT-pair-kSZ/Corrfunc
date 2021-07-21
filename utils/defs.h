@@ -348,6 +348,8 @@ typedef enum {
   PAIR_PRODUCT=0,
   PAIRWISE_VEL,
   PAIRWISE_VEL2,
+  PAIRWISE_VEL3,
+  PAIRWISE_VEL4,
   PAIRWISE_TANG_VEL2,
   NUM_WEIGHT_TYPE
 } weight_method_t; // type of weighting to apply
@@ -360,6 +362,8 @@ static inline int get_num_weights_by_method(const weight_method_t method){
             return 1;
         case PAIRWISE_VEL:
         case PAIRWISE_VEL2:
+        case PAIRWISE_VEL3:
+        case PAIRWISE_VEL4:
         case PAIRWISE_TANG_VEL2:
             return 3;
         default:
@@ -388,6 +392,14 @@ static inline int get_weight_method_by_name(const char *name, weight_method_t *m
     }
     if(strcmp(name, "pairwise_vel2") == 0){
         *method = PAIRWISE_VEL2;
+        return EXIT_SUCCESS;
+    }
+    if(strcmp(name, "pairwise_vel3") == 0){
+        *method = PAIRWISE_VEL3;
+        return EXIT_SUCCESS;
+    }
+    if(strcmp(name, "pairwise_vel4") == 0){
+        *method = PAIRWISE_VEL4;
         return EXIT_SUCCESS;
     }
     if(strcmp(name, "pairwise_tang_vel2") == 0){
