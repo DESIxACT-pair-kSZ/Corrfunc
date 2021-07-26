@@ -121,9 +121,9 @@ static inline DOUBLE pairwise_vel2_DOUBLE(const pair_struct_DOUBLE *pair){
  * * Weight the pair by the cubed difference in radial velocity, ( v dot rhat )^3
  */
 static inline DOUBLE pairwise_vel3_DOUBLE(const pair_struct_DOUBLE *pair){
-    DOUBLE deltavx = pair->weights0[0].d - pair->weights1[0].d;
-    DOUBLE deltavy = pair->weights0[1].d - pair->weights1[1].d;
-    DOUBLE deltavz = pair->weights0[2].d - pair->weights1[2].d;
+    DOUBLE deltavx = pair->weights1[0].d - pair->weights0[0].d;
+    DOUBLE deltavy = pair->weights1[1].d - pair->weights0[1].d;
+    DOUBLE deltavz = pair->weights1[2].d - pair->weights0[2].d;
     
     DOUBLE v_dot_r = deltavx*pair->dx.d + deltavy*pair->dy.d + deltavz*pair->dz.d;
     DOUBLE invr = ((DOUBLE) 1.)/SQRT((pair->dx.d)*(pair->dx.d) + (pair->dy.d)*(pair->dy.d) + (pair->dz.d)*(pair->dz.d));
@@ -195,9 +195,9 @@ static inline AVX_FLOATS avx_pairwise_vel2_DOUBLE(const pair_struct_DOUBLE *pair
  * * Weight the pair by the cubed difference in radial velocity, ( v dot rhat )^3
  */
 static inline AVX_FLOATS avx_pairwise_vel3_DOUBLE(const pair_struct_DOUBLE *pair){
-    AVX_FLOATS deltavx = pair->weights0[0].a - pair->weights1[0].a;
-    AVX_FLOATS deltavy = pair->weights0[1].a - pair->weights1[1].a;
-    AVX_FLOATS deltavz = pair->weights0[2].a - pair->weights1[2].a;
+    AVX_FLOATS deltavx = pair->weights1[0].a - pair->weights0[0].a;
+    AVX_FLOATS deltavy = pair->weights1[1].a - pair->weights0[1].a;
+    AVX_FLOATS deltavz = pair->weights1[2].a - pair->weights0[2].a;
     
     AVX_FLOATS v_dot_r = deltavx*pair->dx.a + deltavy*pair->dy.a + deltavz*pair->dz.a;
     AVX_FLOATS invr = AVX_RSQRT_FLOAT((pair->dx.a)*(pair->dx.a) + (pair->dy.a)*(pair->dy.a) + (pair->dz.a)*(pair->dz.a));
