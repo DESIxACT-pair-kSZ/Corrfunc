@@ -11,8 +11,18 @@ New features
 - GPU version
 
 
-2.4.0 (upcoming)
+2.5.0 (upcoming)
 ================
+
+Changes
+-------
+- Add Corrfunc/tests.py to CI testing [#260]
+- Migrate doctests to Python 3.8 [#261]
+- Migrate Python tests to pytest [#265]
+
+
+2.4.0 (2021-09-30)
+==================
 This release adds the ``boxsize`` parameter to the command line interfaces and
 requires the user to specify the box size in the Python interfaces to the periodic
 theory functions.  It also contains a number of performance, code-quality, and
@@ -31,10 +41,12 @@ Enhancements
 - Add detection of known-bad Cray hugepages library at NERSC [#246]
 - Replace ``np.float`` with ``np.float64`` to fix numpy 1.20 deprecation [#250]
 - Test Numpy versions as old as 1.14 and recent as 1.20 [#251]
+- Add lscpu and preprocessor defs to CI output [#259]
 
 Bug fixes
 ---------
 - Fix Python reference leak to results struct [#229]
+- Fix parsing error when ``periodic=False`` and ``boxsize`` not given in the theory module [#257]
 
 
 2.3.4 (2019-07-21)
