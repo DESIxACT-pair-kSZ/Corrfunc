@@ -196,6 +196,39 @@ static inline DOUBLE pairwise_vel_los_DOUBLE(const pair_struct_DOUBLE *pair){
     return ((DOUBLE) 2.) * deltav * cij;
 }
 
+/*
+ * Weight the pair by the squared difference in tangential velocity, | v - (v dot rhat)*rhat |^2
+ */
+static inline DOUBLE pairwise_vel_los_bias_DOUBLE(const pair_struct_DOUBLE *pair){
+
+    DOUBLE d2 = (pair->dx.d)*(pair->dx.d) + (pair->dy.d)*(pair->dy.d) + (pair->dz.d)*(pair->dz.d);
+    DOUBLE invdmag = ((DOUBLE) 1.)/SQRT(d2);
+    DOUBLE invd0mag = ((DOUBLE) 1.)/SQRT((pair->weights0[0].d)*(pair->weights0[0].d) + (pair->weights0[1].d)*(pair->weights0[1].d) + (pair->weights0[2].d)*(pair->weights0[2].d));
+    DOUBLE invd1mag = ((DOUBLE) 1.)/SQRT((pair->weights1[0].d)*(pair->weights1[0].d) + (pair->weights1[1].d)*(pair->weights1[1].d) + (pair->weights1[2].d)*(pair->weights1[2].d));
+
+    DOUBLE zero = (DOUBLE) 0.;
+    if (d2 < (DOUBLE) 1.e-10) {
+      invdmag = zero;
+    }
+    
+    DOUBLE deltax = pair->weights0[0].d - pair->weights1[0].d;
+    DOUBLE deltay = pair->weights0[1].d - pair->weights1[1].d;
+    DOUBLE deltaz = pair->weights0[2].d - pair->weights1[2].d;
+    DOUBLE deltav = pair->weights0[3].d - pair->weights1[3].d;
+    DOUBLE invbias = ((DOUBLE) 1.)/pair->weights0[4].d; // notice asymmetry; first MUST be larger
+    
+    DOUBLE xhat0 = (pair->weights0[0].d) * invd0mag;
+    DOUBLE yhat0 = (pair->weights0[1].d) * invd0mag;
+    DOUBLE zhat0 = (pair->weights0[2].d) * invd0mag;
+
+    DOUBLE xhat1 = (pair->weights1[0].d) * invd1mag;
+    DOUBLE yhat1 = (pair->weights1[1].d) * invd1mag;
+    DOUBLE zhat1 = (pair->weights1[2].d) * invd1mag;
+    
+    DOUBLE cij = ((xhat0 + xhat1)*(deltax) + (yhat0 + yhat1)*(deltay) + (zhat0 + zhat1)*(deltaz))*invdmag;
+    return ((DOUBLE) 2.) * deltav * cij * invbias;
+}
+
 
 /*
  * Weight the pair by the squared difference in tangential velocity, | v - (v dot rhat)*rhat |^2
@@ -335,6 +368,41 @@ static inline AVX_FLOATS avx_pairwise_vel_los_DOUBLE(const pair_struct_DOUBLE *p
     return AVX_MULTIPLY_FLOATS(AVX_MULTIPLY_FLOATS(AVX_SET_FLOAT((DOUBLE) 2.0), cij), deltav);
 }
 
+
+/*
+ * Weight the pair by the squared difference in tangential velocity, | v - (v dot rhat)*rhat |^2
+ */
+static inline AVX_FLOATS avx_pairwise_vel_los_bias_DOUBLE(const pair_struct_DOUBLE *pair){
+
+    AVX_FLOATS d2 = AVX_ADD_FLOATS(AVX_ADD_FLOATS(AVX_MULTIPLY_FLOATS(pair->dx.a, pair->dx.a), AVX_MULTIPLY_FLOATS(pair->dy.a, pair->dy.a)), AVX_MULTIPLY_FLOATS(pair->dz.a, pair->dz.a));
+    AVX_FLOATS invdmag = AVX_RSQRT_FLOAT(d2);
+    AVX_FLOATS invd0mag = AVX_RSQRT_FLOAT(AVX_ADD_FLOATS(AVX_ADD_FLOATS(AVX_MULTIPLY_FLOATS(pair->weights0[0].a, pair->weights0[0].a), AVX_MULTIPLY_FLOATS(pair->weights0[1].a, pair->weights0[1].a)), AVX_MULTIPLY_FLOATS(pair->weights0[2].a, pair->weights0[2].a)));
+    AVX_FLOATS invd1mag = AVX_RSQRT_FLOAT(AVX_ADD_FLOATS(AVX_ADD_FLOATS(AVX_MULTIPLY_FLOATS(pair->weights1[0].a, pair->weights1[0].a), AVX_MULTIPLY_FLOATS(pair->weights1[1].a, pair->weights1[1].a)), AVX_MULTIPLY_FLOATS(pair->weights1[2].a, pair->weights1[2].a)));
+
+    AVX_FLOATS zero = AVX_SETZERO_FLOAT();
+    AVX_FLOATS mask_d2_zero = AVX_COMPARE_FLOATS(zero, d2, _CMP_LT_OS); 
+    // if 0 < d2, mask is true; blend(F, T, m)
+    invdmag = AVX_BLEND_FLOATS_WITH_MASK(zero, invdmag, mask_d2_zero);
+    
+    AVX_FLOATS deltax = AVX_SUBTRACT_FLOATS(pair->weights0[0].a, pair->weights1[0].a);
+    AVX_FLOATS deltay = AVX_SUBTRACT_FLOATS(pair->weights0[1].a, pair->weights1[1].a);
+    AVX_FLOATS deltaz = AVX_SUBTRACT_FLOATS(pair->weights0[2].a, pair->weights1[2].a);
+    AVX_FLOATS deltav = AVX_SUBTRACT_FLOATS(pair->weights0[3].a, pair->weights1[3].a);
+    AVX_FLOATS invbias = AVX_RECIPROCAL_FLOATS(pair->weights0[4].a);
+    
+    AVX_FLOATS xhat0 = AVX_MULTIPLY_FLOATS(pair->weights0[0].a, invd0mag);
+    AVX_FLOATS yhat0 = AVX_MULTIPLY_FLOATS(pair->weights0[1].a, invd0mag);
+    AVX_FLOATS zhat0 = AVX_MULTIPLY_FLOATS(pair->weights0[2].a, invd0mag);
+
+    AVX_FLOATS xhat1 = AVX_MULTIPLY_FLOATS(pair->weights1[0].a, invd1mag);
+    AVX_FLOATS yhat1 = AVX_MULTIPLY_FLOATS(pair->weights1[1].a, invd1mag);
+    AVX_FLOATS zhat1 = AVX_MULTIPLY_FLOATS(pair->weights1[2].a, invd1mag);
+    
+    AVX_FLOATS cij = AVX_MULTIPLY_FLOATS(AVX_ADD_FLOATS(AVX_ADD_FLOATS(AVX_MULTIPLY_FLOATS(AVX_ADD_FLOATS(xhat0, xhat1), deltax), AVX_MULTIPLY_FLOATS(AVX_ADD_FLOATS(yhat0, yhat1), deltay)), AVX_MULTIPLY_FLOATS(AVX_ADD_FLOATS(zhat0, zhat1), deltaz)), invdmag);
+    
+    return AVX_MULTIPLY_FLOATS(AVX_MULTIPLY_FLOATS(AVX_MULTIPLY_FLOATS(AVX_SET_FLOAT((DOUBLE) 2.0), cij), deltav), invbias);
+}
+
 /*
  * Weight the pair by the squared difference in tangential velocity, | v - (v dot rhat)*rhat |^2
  */
@@ -365,6 +433,105 @@ static inline AVX_FLOATS avx_pairwise_vel_los_norm_DOUBLE(const pair_struct_DOUB
     AVX_FLOATS cij = AVX_MULTIPLY_FLOATS(AVX_ADD_FLOATS(AVX_ADD_FLOATS(AVX_MULTIPLY_FLOATS(AVX_ADD_FLOATS(xhat0, xhat1), deltax), AVX_MULTIPLY_FLOATS(AVX_ADD_FLOATS(yhat0, yhat1),deltay)), AVX_MULTIPLY_FLOATS(AVX_ADD_FLOATS(zhat0, zhat1), deltaz)), invdmag);
     return AVX_MULTIPLY_FLOATS(cij, cij);
 }
+
+/*
+ * Weight the pair by the squared difference in tangential velocity, | v - (v dot rhat)*rhat |^2
+ */
+static inline AVX512_FLOATS avx512_pairwise_vel_los_DOUBLE(const pair_struct_DOUBLE *pair){
+  
+    AVX512_FLOATS d2 = AVX512_FMA_ADD_FLOATS(pair->dx.a512, pair->dx.a512, AVX512_FMA_ADD_FLOATS(pair->dy.a512, pair->dy.a512, AVX512_MULTIPLY_FLOATS(pair->dz.a512, pair->dz.a512)));
+    AVX512_FLOATS invdmag = AVX512_RECIPROCAL_FLOATS(AVX512_SQRT_FLOAT(d2));
+    AVX512_FLOATS invd0mag = AVX512_RECIPROCAL_FLOATS(AVX512_SQRT_FLOAT(AVX512_FMA_ADD_FLOATS(pair->weights0[0].a512, pair->weights0[0].a512, AVX512_FMA_ADD_FLOATS(pair->weights0[1].a512, pair->weights0[1].a512, AVX512_MULTIPLY_FLOATS(pair->weights0[2].a512, pair->weights0[2].a512)))));
+    AVX512_FLOATS invd1mag = AVX512_RECIPROCAL_FLOATS(AVX512_SQRT_FLOAT(AVX512_FMA_ADD_FLOATS(pair->weights1[0].a512, pair->weights1[0].a512, AVX512_FMA_ADD_FLOATS(pair->weights1[1].a512, pair->weights1[1].a512, AVX512_MULTIPLY_FLOATS(pair->weights1[2].a512, pair->weights1[2].a512)))));
+  
+    AVX512_FLOATS zero = AVX512_SETZERO_FLOAT();
+    AVX512_MASK mask_d2_zero = AVX512_COMPARE_FLOATS(zero, d2, _CMP_LT_OQ); 
+    // if 0 < d2, mask is true; blend(m, F, T)
+    invdmag = AVX512_BLEND_FLOATS_WITH_MASK(mask_d2_zero, zero, invdmag);
+    
+    AVX512_FLOATS deltax = AVX512_SUBTRACT_FLOATS(pair->weights0[0].a512, pair->weights1[0].a512);
+    AVX512_FLOATS deltay = AVX512_SUBTRACT_FLOATS(pair->weights0[1].a512, pair->weights1[1].a512);
+    AVX512_FLOATS deltaz = AVX512_SUBTRACT_FLOATS(pair->weights0[2].a512, pair->weights1[2].a512);
+    AVX512_FLOATS deltav = AVX512_SUBTRACT_FLOATS(pair->weights0[3].a512, pair->weights1[3].a512);
+    
+    AVX512_FLOATS xhat0 = AVX512_MULTIPLY_FLOATS(pair->weights0[0].a512, invd0mag);
+    AVX512_FLOATS yhat0 = AVX512_MULTIPLY_FLOATS(pair->weights0[1].a512, invd0mag);
+    AVX512_FLOATS zhat0 = AVX512_MULTIPLY_FLOATS(pair->weights0[2].a512, invd0mag);
+
+    AVX512_FLOATS xhat1 = AVX512_MULTIPLY_FLOATS(pair->weights1[0].a512, invd1mag);
+    AVX512_FLOATS yhat1 = AVX512_MULTIPLY_FLOATS(pair->weights1[1].a512, invd1mag);
+    AVX512_FLOATS zhat1 = AVX512_MULTIPLY_FLOATS(pair->weights1[2].a512, invd1mag);
+    
+    AVX512_FLOATS cij = AVX512_MULTIPLY_FLOATS(AVX512_FMA_ADD_FLOATS(AVX512_ADD_FLOATS(xhat0, xhat1), deltax, AVX512_FMA_ADD_FLOATS(AVX512_ADD_FLOATS(yhat0, yhat1), deltay, AVX512_MULTIPLY_FLOATS(AVX512_ADD_FLOATS(zhat0, zhat1), deltaz))), invdmag);
+    //AVX512_FLOATS cij = AVX512_MULTIPLY_FLOATS(AVX512_ADD_FLOATS(AVX512_ADD_FLOATS(AVX512_MULTIPLY_FLOATS(AVX512_ADD_FLOATS(xhat0, xhat1), deltax), AVX512_MULTIPLY_FLOATS(AVX512_ADD_FLOATS(yhat0, yhat1),deltay)), AVX512_MULTIPLY_FLOATS(AVX512_ADD_FLOATS(zhat0, zhat1), deltaz)), invdmag); // old version (need to also change invd's)
+    return AVX512_MULTIPLY_FLOATS(AVX512_MULTIPLY_FLOATS(AVX512_SET_FLOAT((DOUBLE) 2.0), cij), deltav);
+}
+
+
+/*
+ * Weight the pair by the squared difference in tangential velocity, | v - (v dot rhat)*rhat |^2
+ */
+static inline AVX512_FLOATS avx512_pairwise_vel_los_bias_DOUBLE(const pair_struct_DOUBLE *pair){
+
+    AVX512_FLOATS d2 = AVX512_FMA_ADD_FLOATS(pair->dx.a512, pair->dx.a512, AVX512_FMA_ADD_FLOATS(pair->dy.a512, pair->dy.a512, AVX512_MULTIPLY_FLOATS(pair->dz.a512, pair->dz.a512)));
+    AVX512_FLOATS invdmag = AVX512_RECIPROCAL_FLOATS(AVX512_SQRT_FLOAT(d2));
+    AVX512_FLOATS invd0mag = AVX512_RECIPROCAL_FLOATS(AVX512_SQRT_FLOAT(AVX512_FMA_ADD_FLOATS(pair->weights0[0].a512, pair->weights0[0].a512, AVX512_FMA_ADD_FLOATS(pair->weights0[1].a512, pair->weights0[1].a512, AVX512_MULTIPLY_FLOATS(pair->weights0[2].a512, pair->weights0[2].a512)))));
+    AVX512_FLOATS invd1mag = AVX512_RECIPROCAL_FLOATS(AVX512_SQRT_FLOAT(AVX512_FMA_ADD_FLOATS(pair->weights1[0].a512, pair->weights1[0].a512, AVX512_FMA_ADD_FLOATS(pair->weights1[1].a512, pair->weights1[1].a512, AVX512_MULTIPLY_FLOATS(pair->weights1[2].a512, pair->weights1[2].a512)))));
+
+    AVX512_FLOATS zero = AVX512_SETZERO_FLOAT();
+    AVX512_MASK mask_d2_zero = AVX512_COMPARE_FLOATS(zero, d2, _CMP_LT_OQ); 
+    // if 0 < d2, mask is true; blend(m, F, T)
+    invdmag = AVX512_BLEND_FLOATS_WITH_MASK(mask_d2_zero, zero, invdmag);
+    
+    AVX512_FLOATS deltax = AVX512_SUBTRACT_FLOATS(pair->weights0[0].a512, pair->weights1[0].a512);
+    AVX512_FLOATS deltay = AVX512_SUBTRACT_FLOATS(pair->weights0[1].a512, pair->weights1[1].a512);
+    AVX512_FLOATS deltaz = AVX512_SUBTRACT_FLOATS(pair->weights0[2].a512, pair->weights1[2].a512);
+    AVX512_FLOATS deltav = AVX512_SUBTRACT_FLOATS(pair->weights0[3].a512, pair->weights1[3].a512);
+    AVX512_FLOATS invbias = AVX512_RECIPROCAL_FLOATS(pair->weights0[4].a512);
+    
+    AVX512_FLOATS xhat0 = AVX512_MULTIPLY_FLOATS(pair->weights0[0].a512, invd0mag);
+    AVX512_FLOATS yhat0 = AVX512_MULTIPLY_FLOATS(pair->weights0[1].a512, invd0mag);
+    AVX512_FLOATS zhat0 = AVX512_MULTIPLY_FLOATS(pair->weights0[2].a512, invd0mag);
+
+    AVX512_FLOATS xhat1 = AVX512_MULTIPLY_FLOATS(pair->weights1[0].a512, invd1mag);
+    AVX512_FLOATS yhat1 = AVX512_MULTIPLY_FLOATS(pair->weights1[1].a512, invd1mag);
+    AVX512_FLOATS zhat1 = AVX512_MULTIPLY_FLOATS(pair->weights1[2].a512, invd1mag);
+    
+    AVX512_FLOATS cij = AVX512_MULTIPLY_FLOATS(AVX512_FMA_ADD_FLOATS(AVX512_ADD_FLOATS(xhat0, xhat1), deltax, AVX512_FMA_ADD_FLOATS(AVX512_ADD_FLOATS(yhat0, yhat1), deltay, AVX512_MULTIPLY_FLOATS(AVX512_ADD_FLOATS(zhat0, zhat1), deltaz))), invdmag);
+    return AVX512_MULTIPLY_FLOATS(AVX512_MULTIPLY_FLOATS(AVX512_MULTIPLY_FLOATS(AVX512_SET_FLOAT((DOUBLE) 2.0), cij), deltav), invbias);
+}
+
+/*
+ * Weight the pair by the squared difference in tangential velocity, | v - (v dot rhat)*rhat |^2
+ */
+static inline AVX512_FLOATS avx512_pairwise_vel_los_norm_DOUBLE(const pair_struct_DOUBLE *pair){
+
+    AVX512_FLOATS d2 = AVX512_FMA_ADD_FLOATS(pair->dx.a512, pair->dx.a512, AVX512_FMA_ADD_FLOATS(pair->dy.a512, pair->dy.a512, AVX512_MULTIPLY_FLOATS(pair->dz.a512, pair->dz.a512)));
+    AVX512_FLOATS invdmag = AVX512_RECIPROCAL_FLOATS(AVX512_SQRT_FLOAT(d2));
+    AVX512_FLOATS invd0mag = AVX512_RECIPROCAL_FLOATS(AVX512_SQRT_FLOAT(AVX512_FMA_ADD_FLOATS(pair->weights0[0].a512, pair->weights0[0].a512, AVX512_FMA_ADD_FLOATS(pair->weights0[1].a512, pair->weights0[1].a512, AVX512_MULTIPLY_FLOATS(pair->weights0[2].a512, pair->weights0[2].a512)))));
+    AVX512_FLOATS invd1mag = AVX512_RECIPROCAL_FLOATS(AVX512_SQRT_FLOAT(AVX512_FMA_ADD_FLOATS(pair->weights1[0].a512, pair->weights1[0].a512, AVX512_FMA_ADD_FLOATS(pair->weights1[1].a512, pair->weights1[1].a512, AVX512_MULTIPLY_FLOATS(pair->weights1[2].a512, pair->weights1[2].a512)))));
+
+    AVX512_FLOATS zero = AVX512_SETZERO_FLOAT();
+    AVX512_MASK mask_d2_zero = AVX512_COMPARE_FLOATS(zero, d2, _CMP_LT_OQ); 
+    // if 0 < d2, mask is true; blend(m, F, T)
+    invdmag = AVX512_BLEND_FLOATS_WITH_MASK(mask_d2_zero, zero, invdmag);
+    
+    AVX512_FLOATS deltax = AVX512_SUBTRACT_FLOATS(pair->weights0[0].a512, pair->weights1[0].a512);
+    AVX512_FLOATS deltay = AVX512_SUBTRACT_FLOATS(pair->weights0[1].a512, pair->weights1[1].a512);
+    AVX512_FLOATS deltaz = AVX512_SUBTRACT_FLOATS(pair->weights0[2].a512, pair->weights1[2].a512);
+    
+    AVX512_FLOATS xhat0 = AVX512_MULTIPLY_FLOATS(pair->weights0[0].a512, invd0mag);
+    AVX512_FLOATS yhat0 = AVX512_MULTIPLY_FLOATS(pair->weights0[1].a512, invd0mag);
+    AVX512_FLOATS zhat0 = AVX512_MULTIPLY_FLOATS(pair->weights0[2].a512, invd0mag);
+
+    AVX512_FLOATS xhat1 = AVX512_MULTIPLY_FLOATS(pair->weights1[0].a512, invd1mag);
+    AVX512_FLOATS yhat1 = AVX512_MULTIPLY_FLOATS(pair->weights1[1].a512, invd1mag);
+    AVX512_FLOATS zhat1 = AVX512_MULTIPLY_FLOATS(pair->weights1[2].a512, invd1mag);
+    
+    AVX512_FLOATS cij = AVX512_MULTIPLY_FLOATS(AVX512_FMA_ADD_FLOATS(AVX512_ADD_FLOATS(xhat0, xhat1), deltax, AVX512_FMA_ADD_FLOATS(AVX512_ADD_FLOATS(yhat0, yhat1), deltay, AVX512_MULTIPLY_FLOATS(AVX512_ADD_FLOATS(zhat0, zhat1), deltaz))), invdmag);
+    return AVX512_MULTIPLY_FLOATS(cij, cij);
+}
+
     
 
 //////////////////////////////////
@@ -391,6 +558,8 @@ static inline weight_func_t_DOUBLE get_weight_func_by_method_DOUBLE(const weight
             return &pairwise_tang_vel2_DOUBLE;
         case PAIRWISE_VEL_LOS:
             return &pairwise_vel_los_DOUBLE;
+        case PAIRWISE_VEL_LOS_BIAS:
+            return &pairwise_vel_los_bias_DOUBLE;
         case PAIRWISE_VEL_LOS_NORM:
             return &pairwise_vel_los_norm_DOUBLE;
         default:
@@ -404,6 +573,12 @@ static inline avx512_weight_func_t_DOUBLE get_avx512_weight_func_by_method_DOUBL
     switch(method){
         case PAIR_PRODUCT:
             return &avx512_pair_product_DOUBLE;
+        case PAIRWISE_VEL_LOS:
+            return &avx512_pairwise_vel_los_DOUBLE;
+        case PAIRWISE_VEL_LOS_BIAS:
+            return &avx512_pairwise_vel_los_bias_DOUBLE;
+        case PAIRWISE_VEL_LOS_NORM:
+            return &avx512_pairwise_vel_los_norm_DOUBLE;
         default:
         case NONE:
             return NULL;
@@ -429,6 +604,8 @@ static inline avx_weight_func_t_DOUBLE get_avx_weight_func_by_method_DOUBLE(cons
             return &avx_pairwise_tang_vel2_DOUBLE;
         case PAIRWISE_VEL_LOS:
             return &avx_pairwise_vel_los_DOUBLE;
+        case PAIRWISE_VEL_LOS_BIAS:
+            return &avx_pairwise_vel_los_bias_DOUBLE;
         case PAIRWISE_VEL_LOS_NORM:
             return &avx_pairwise_vel_los_norm_DOUBLE;
         default:
