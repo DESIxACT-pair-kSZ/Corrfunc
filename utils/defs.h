@@ -356,7 +356,7 @@ typedef enum {
   PAIRWISE_VEL4,
   PAIRWISE_TANG_VEL2,
   PAIRWISE_VEL_LOS,
-  PAIRWISE_VEL_LOS_BIAS,
+  PAIRWISE_VEL_LOS_ASYMM,
   PAIRWISE_VEL_LOS_NORM,
   NUM_WEIGHT_TYPE
 } weight_method_t; // type of weighting to apply
@@ -365,12 +365,6 @@ typedef enum {
  */
 static inline int get_num_weights_by_method(const weight_method_t method){
     switch(method){
-        case PAIRWISE_VEL_LOS: // kinda dumb but dont know how to pass positions otherwise
-            return 4;
-        case PAIRWISE_VEL_LOS_BIAS: // kinda dumb but dont know how to pass positions otherwise
-            return 5;
-        case PAIRWISE_VEL_LOS_NORM: // kinda dumb but dont know how to pass positions otherwise
-            return 3;
         case PAIR_PRODUCT:
             return 1;
         case PAIRWISE_VEL:
@@ -378,7 +372,11 @@ static inline int get_num_weights_by_method(const weight_method_t method){
         case PAIRWISE_VEL3:
         case PAIRWISE_VEL4:
         case PAIRWISE_TANG_VEL2:
+	case PAIRWISE_VEL_LOS_NORM: // kinda dumb but dont know how to pass positions otherwise
             return 3;
+	case PAIRWISE_VEL_LOS: // kinda dumb but dont know how to pass positions otherwise
+        case PAIRWISE_VEL_LOS_ASYMM: // kinda dumb but dont know how to pass positions otherwise
+            return 4;
         default:
         case NONE:
             return 0;
@@ -423,8 +421,8 @@ static inline int get_weight_method_by_name(const char *name, weight_method_t *m
         *method = PAIRWISE_VEL_LOS;
         return EXIT_SUCCESS;
     }
-    if(strcmp(name, "pairwise_vel_los_bias") == 0){
-        *method = PAIRWISE_VEL_LOS_BIAS;
+    if(strcmp(name, "pairwise_vel_los_asymm") == 0){
+        *method = PAIRWISE_VEL_LOS_ASYMM;
         return EXIT_SUCCESS;
     }
     if(strcmp(name, "pairwise_vel_los_norm") == 0){

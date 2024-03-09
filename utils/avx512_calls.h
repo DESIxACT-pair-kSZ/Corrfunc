@@ -133,7 +133,7 @@ extern "C" {
 #define AVX512_SQRT_FLOAT(X)                                      _mm512_sqrt_ps(X)
 #define AVX512_MASK_SQRT_FLOAT(FALSEVALS, MASK, X)                _mm512_mask_sqrt_ps(FALSEVALS, MASK, X)
 #define AVX512_MASKZ_SQRT_FLOAT(MASK, X)                          _mm512_maskz_sqrt_ps(MASK, X)
-
+#define AVX512_RSQRT_FLOAT(X)                                     _mm512_rsqrt14_ps(X)
 
 #define AVX512_SVML_SQRT_FLOAT(X)                                 _mm512_svml_sqrt_ps(X)
 #define AVX512_TRUNCATE_FLOAT_TO_INT(X)                           _mm512_cvttps_epi32(X)
@@ -268,7 +268,7 @@ extern "C" {
 #define AVX512_SQRT_FLOAT(X)                                      _mm512_sqrt_pd(X)
 #define AVX512_MASK_SQRT_FLOAT(FALSEVALS, MASK, X)                _mm512_mask_sqrt_pd(FALSEVALS, MASK, X)
 #define AVX512_MASKZ_SQRT_FLOAT(MASK, X)                          _mm512_maskz_sqrt_pd(MASK, X)
-
+#define AVX512_RSQRT_FLOAT(X)                                     _mm512_rsqrt14_pd(X)
 
 #define AVX512_SVML_SQRT_FLOAT(X)                                 _mm512_svml_sqrt_pd(X)
 #define AVX512_TRUNCATE_FLOAT_TO_INT(X)                           _mm512_cvttpd_epi32(X) 

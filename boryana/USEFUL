@@ -1,0 +1,18 @@
+here are some notes i wrote on it:
+You can install from: "pip install git+https://github.com/lgarrison/Corrfunc.git@pairwise_vel"
+Some notes:
+- The three weight schemes are: 'pairwise_vel', 'pairwise_vel2', and 'pairwise_tang_vel2'. Pass one of these to the `weight_type` arg (example below).
+- The result is returned in the `weightavg` field, which is the mean weight of pairs in that radial bin
+- The time with weights is about 30% slower than unweighted, compounded with `fallback` being about 2x as slow as `avx`.
+- I have hardly tested this! I recommend testing lots more two-particle examples like the one below.
+- You can read through the weighting functions in the diff, should be useful if something doesn't look right: https://github.com/lgarrison/Corrfunc/compare/master...lgarrison:pairwise_vel
+- You may find single precision faster, but do compare against the double precision result. It's easy for big datasets to underflow these accumulations.
+Example:
+import Corrfunc
+import numpy as np
+bins = np.logspace(-1,1,4)
+pos = np.array([[0., 0., 0.],
+        [1., 0., 0.]])
+vel = np.array([[0., 0., 0.],
+        [1., 0., 0.]])
+res = Corrfunc.theory.DD(1, 4, bins, *pos.T, weights1=vel.T, periodic=True, boxsize=100., verbose=True, weight_type='pairwise_vel', isa='fallback')
